@@ -689,10 +689,11 @@ ERROR(use_nonmatching_operator,none,
       "%0 is not a %select{binary|prefix unary|postfix unary}1 operator",
       (DeclName, unsigned))
 ERROR(unsupported_recursion_in_associated_type_reference,none,
-      "unsupported recursion for reference to associated type %0 of type %1",
-      (DeclName, Type))
+      "unsupported recursion for reference to %select{associated type|type alias}0 %1 of type %2",
+      (bool, DeclName, Type))
 ERROR(broken_associated_type_witness,none,
-      "reference to invalid associated type %0 of type %1", (DeclName, Type))
+      "reference to invalid %select{associated type|type alias}0 %1 of type %2",
+      (bool, DeclName, Type))
 
 ERROR(unspaced_binary_operator_fixit,none,
       "missing whitespace between %0 and %1 operators",
@@ -705,10 +706,6 @@ NOTE(unspaced_binary_operators_candidate,none,
 ERROR(unspaced_unary_operator,none,
       "unary operators must not be juxtaposed; parenthesize inner expression",
       ())
-
-ERROR(operators_designated_protocol_not_a_protocol,none,
-      "type %0 unexpected; expected a protocol type",
-      (Type))
 
 ERROR(use_unresolved_identifier,none,
       "use of unresolved %select{identifier|operator}1 %0", (DeclName, bool))
@@ -1374,10 +1371,6 @@ ERROR(nscoding_unstable_mangled_name,none,
       "%select{private|fileprivate|nested|local}0 class %1 has an "
       "unstable name when archiving via 'NSCoding'",
       (unsigned, Type))
-WARNING(nscoding_unstable_mangled_name_warn,none,
-        "%select{private|fileprivate|nested|local}0 class %1 has an "
-        "unstable name when archiving via 'NSCoding'",
-        (unsigned, Type))
 NOTE(unstable_mangled_name_add_objc_new,none,
      "for new classes, use '@objc' to specify a unique, prefixed Objective-C "
      "runtime name", ())
@@ -1630,10 +1623,6 @@ ERROR(requirement_restricts_self,none,
       "%0 requirement %1 cannot add constraint '%2%select{:|:| ==|:}3 %4' on "
       "'Self'",
       (DescriptiveDeclKind, DeclName, StringRef, unsigned, StringRef))
-WARNING(requirement_restricts_self_swift3,none,
-        "adding constraint '%2%select{:|:| ==|:}3 %4' on 'Self' via %0 "
-        "requirement %1 is deprecated in Swift 3",
-        (DescriptiveDeclKind, DeclName, StringRef, unsigned, StringRef))
 ERROR(witness_argument_name_mismatch,none,
       "%select{method|initializer}0 %1 has different argument labels from those "
       "required by protocol %2 (%3)", (bool, DeclName, Type, DeclName))
@@ -1781,9 +1770,18 @@ NOTE(bad_associated_type_deduction,none,
      "unable to infer associated type %0 for protocol %1",
      (DeclName, DeclName))
 NOTE(associated_type_deduction_witness_failed,none,
-     "inferred type %1 (by matching requirement %0) is invalid: "
-     "does not %select{inherit from|conform to}3 %2",
+     "candidate would match and infer %0 = %1 if %1 "
+     "%select{inherited from|conformed to}3 %2",
      (DeclName, Type, Type, bool))
+NOTE(associated_type_witness_conform_impossible,none,
+     "candidate can not infer %0 = %1 because %1 "
+     "is not a nominal type and so can't conform to %2",
+     (DeclName, Type, Type))
+NOTE(associated_type_witness_inherit_impossible,none,
+     "candidate can not infer %0 = %1 because %1 "
+     "is not a class type and so can't inherit from %2",
+     (DeclName, Type, Type))
+
 NOTE(ambiguous_associated_type_deduction,none,
      "ambiguous inference of associated type %0: %1 vs. %2",
      (DeclName, Type, Type))
@@ -1804,6 +1802,9 @@ NOTE(protocol_witness_kind_conflict,none,
      "a subscript}0", (RequirementKind))
 NOTE(protocol_witness_type_conflict,none,
      "candidate has non-matching type %0%1", (Type, StringRef))
+NOTE(protocol_witness_missing_requirement,none,
+     "candidate would match if %0 %select{conformed to|subclassed|"
+     "was the same type as}2 %1", (Type, Type, unsigned))
 
 NOTE(protocol_witness_optionality_conflict,none,
      "candidate %select{type has|result type has|parameter type has|"
@@ -1923,11 +1924,11 @@ ERROR(protocol_composition_one_class,none,
 
 ERROR(requires_conformance_nonprotocol,none,
       "type %0 constrained to non-protocol, non-class type %1",
-      (TypeLoc, TypeLoc))
+      (Type, Type))
 ERROR(requires_not_suitable_archetype,none,
       "type %0 in conformance requirement does not refer to a "
       "generic parameter or associated type",
-      (TypeLoc))
+      (Type))
 WARNING(requires_no_same_type_archetype,none,
         "neither type in same-type constraint (%0 or %1) refers to a "
         "generic parameter or associated type",
@@ -2154,9 +2155,6 @@ ERROR(override_dynamic_self_mismatch,none,
 ERROR(override_class_declaration_in_extension,none,
       "cannot override a non-dynamic class declaration from an extension",
       ())
-WARNING(override_class_declaration_in_extension_warning,none,
-      "cannot override a non-dynamic class declaration from an extension",
-      ())
 ERROR(override_throws,none,
       "cannot override non-throwing %select{method|initializer}0 with "
       "throwing %select{method|initializer}0", (bool))
@@ -2254,8 +2252,6 @@ ERROR(inheritance_from_cf_class,none,
 ERROR(inheritance_from_objc_runtime_visible_class,none,
       "cannot inherit from class %0 because it is only visible via the "
       "Objective-C runtime", (Identifier))
-WARNING(class_inherits_anyobject,none,
-        "conformance of class %0 to 'AnyObject' is redundant", (Type))
 
 // Enums
 ERROR(enum_case_access,none,
@@ -2347,9 +2343,6 @@ NOTE(construct_raw_representable_from_unwrapped_value,none,
      "construct %0 from unwrapped %1 value", (Type, Type))
 
 // Derived conformances
-ERROR(swift3_cannot_synthesize_in_extension,none,
-      "implementation of %0 cannot be automatically synthesized in an extension "
-      "in Swift 3", (Type))
 ERROR(cannot_synthesize_init_in_extension_of_nonfinal,none,
       "implementation of %0 for non-final class cannot be automatically "
       "synthesized in extension because initializer requirement %1 can only be "
@@ -2493,9 +2486,6 @@ ERROR(override_static,none,
 
 ERROR(member_cannot_be_final,none,
       "only classes and class members may be marked with 'final'",
-      ())
-WARNING(protocol_extension_cannot_be_final,none,
-      "functions in a protocol extension do not need to be marked with 'final'",
       ())
 
 ERROR(final_not_allowed_here,none,
@@ -3307,10 +3297,6 @@ ERROR(isa_collection_downcast_pattern_value_unimplemented,none,
       "collection downcast in cast pattern is not implemented; use an explicit "
       "downcast to %0 instead", (Type))
 
-WARNING(swift3_ignore_specialized_enum_element_call,none,
-        "cannot specialize enum case; ignoring generic argument, "
-        "which will be rejected in future version of Swift", ())
-
 //------------------------------------------------------------------------------
 // MARK: Error-handling diagnostics
 //------------------------------------------------------------------------------
@@ -3813,11 +3799,6 @@ ERROR(objc_class_method_not_permitted,none,
       OBJC_DIAG_SELECT " defines Objective-C class method %2, which is "
       "not permitted by Swift", (unsigned, DeclName, ObjCSelector))
 
-WARNING(objc_class_method_not_permitted_swift3_compat_warning,none,
-      OBJC_DIAG_SELECT " defines Objective-C class method %2, which is "
-      "not guaranteed to be invoked by Swift and will be disallowed in future "
-      "versions", (unsigned, DeclName, ObjCSelector))
-
 ERROR(objc_witness_selector_mismatch,none,
       "Objective-C method %2 provided by " OBJC_DIAG_SELECT
       " does not match the requirement's selector (%3)",
@@ -4030,9 +4011,6 @@ WARNING(inlinable_implies_usable_from_inline,none,
 
 ERROR(usable_from_inline_attr_in_protocol,none,
       "'@usableFromInline' attribute cannot be used in protocols", ())
-
-ERROR(usable_from_inline_dynamic_not_supported,none,
-      "'@usableFromInline' attribute cannot be applied to 'dynamic' declarations", ())
 
 #define FRAGILE_FUNC_KIND \
   "%select{a '@_transparent' function|" \

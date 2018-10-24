@@ -548,6 +548,11 @@ private:
   /// Returns false if there was an error.
   bool readCommentBlock(llvm::BitstreamCursor &cursor);
 
+  /// Loads data from #ModuleDocInputBuffer.
+  ///
+  /// Returns false if there was an error.
+  bool readModuleDocIfPresent();
+
   /// Recursively reads a pattern from \c DeclTypeCursor.
   llvm::Expected<Pattern *> readPattern(DeclContext *owningDC);
 
@@ -626,6 +631,9 @@ public:
     theModule.reset(new ModuleFile(std::move(moduleInputBuffer),
                                    std::move(moduleDocInputBuffer),
                                    isFramework, info, extInfo));
+    assert(info.status == Status::Valid ||
+           info.status == theModule->getStatus());
+    info.status = theModule->getStatus();
     return info;
   }
 
@@ -737,6 +745,9 @@ public:
 
   /// Adds all top-level decls to the given vector.
   void getTopLevelDecls(SmallVectorImpl<Decl*> &Results);
+
+  /// Adds all precedence groups to the given vector.
+  void getPrecedenceGroups(SmallVectorImpl<PrecedenceGroupDecl*> &Results);
 
   /// Adds all local type decls to the given vector.
   void getLocalTypeDecls(SmallVectorImpl<TypeDecl*> &Results);
@@ -887,6 +898,9 @@ public:
 
   /// Reads inlinable body text from \c DeclTypeCursor, if present.
   Optional<StringRef> maybeReadInlinableBodyText();
+
+  /// Reads pattern initializer text from \c DeclTypeCursor, if present.
+  Optional<StringRef> maybeReadPatternInitializerText();
 };
 
 template <typename T, typename RawData>

@@ -82,9 +82,14 @@ Type RequirementFailure::getOwnerType() const {
   return getType(getAnchor())->getInOutObjectType()->getMetatypeInstanceType();
 }
 
+const GenericContext *RequirementFailure::getGenericContext() const {
+  if (auto *genericCtx = AffectedDecl->getAsGenericContext())
+    return genericCtx;
+  return AffectedDecl->getDeclContext()->getAsDecl()->getAsGenericContext();
+}
+
 const Requirement &RequirementFailure::getRequirement() const {
-  auto *genericCtx = AffectedDecl->getAsGenericContext();
-  return genericCtx->getGenericRequirements()[getRequirementIndex()];
+  return getGenericContext()->getGenericRequirements()[getRequirementIndex()];
 }
 
 ValueDecl *RequirementFailure::getDeclRef() const {
@@ -98,10 +103,16 @@ ValueDecl *RequirementFailure::getDeclRef() const {
     locator = cs.getConstraintLocator(
         ctor.withPathElement(PathEltKind::ApplyFunction)
             .withPathElement(PathEltKind::ConstructorMember));
-  } else if (isa<UnresolvedDotExpr>(anchor)) {
+  } else if (auto *UDE = dyn_cast<UnresolvedDotExpr>(anchor)) {
     ConstraintLocatorBuilder member(locator);
-    locator =
-        cs.getConstraintLocator(member.withPathElement(PathEltKind::Member));
+
+    if (UDE->getName().isSimpleName(DeclBaseName::createConstructor())) {
+      member = member.withPathElement(PathEltKind::ConstructorMember);
+    } else {
+      member = member.withPathElement(PathEltKind::Member);
+    }
+
+    locator = cs.getConstraintLocator(member);
   } else if (isa<SubscriptExpr>(anchor)) {
     ConstraintLocatorBuilder subscript(locator);
     locator = cs.getConstraintLocator(
@@ -139,7 +150,7 @@ bool RequirementFailure::diagnoseAsError() {
 
   auto *anchor = getAnchor();
   const auto *reqDC = getRequirementDC();
-  auto *genericCtx = AffectedDecl->getAsGenericContext();
+  auto *genericCtx = getGenericContext();
 
   if (reqDC != genericCtx) {
     auto *NTD = reqDC->getSelfNominalTypeDecl();

@@ -25,10 +25,13 @@ class NormalProtocolConformance;
 
 namespace irgen {
 
+enum class MangledTypeRefRole;
+
 /// A mangling string that includes embedded symbolic references.
 struct SymbolicMangling {
   std::string String;
-  std::vector<std::pair<const DeclContext *, unsigned>> SymbolicReferences;
+  std::vector<std::pair<Mangle::ASTMangler::SymbolicReferent, unsigned>>
+    SymbolicReferences;
 };
 
 /// The mangler for all kind of symbols produced in IRGen.
@@ -247,19 +250,9 @@ public:
     return mangleConformanceSymbol(Type(), C, "Wp");
   }
 
-  std::string mangleGenericProtocolWitnessTableCache(
-                                                const ProtocolConformance *C) {
-    return mangleConformanceSymbol(Type(), C, "WG");
-  }
-
   std::string mangleGenericProtocolWitnessTableInstantiationFunction(
                                                 const ProtocolConformance *C) {
     return mangleConformanceSymbol(Type(), C, "WI");
-  }
-
-  std::string mangleResilientProtocolWitnessTable(
-                                                const ProtocolConformance *C) {
-    return mangleConformanceSymbol(Type(), C, "Wr");
   }
 
   std::string mangleProtocolWitnessTableAccessFunction(
@@ -275,31 +268,6 @@ public:
   std::string mangleProtocolWitnessTableLazyCacheVariable(Type type,
                                                 const ProtocolConformance *C) {
     return mangleConformanceSymbol(type, C, "WL");
-  }
-
-  std::string mangleAssociatedTypeMetadataAccessFunction(
-                                      const ProtocolConformance *Conformance,
-                                      StringRef AssocTyName) {
-    beginMangling();
-    appendProtocolConformance(Conformance);
-    appendIdentifier(AssocTyName);
-    appendOperator("Wt");
-    return finalize();
-  }
-
-  std::string mangleDefaultAssociatedTypeMetadataAccessFunction(
-                                      const AssociatedTypeDecl *assocType) {
-    // Don't optimize away the protocol name, because we need it to distinguish
-    // among the type descriptors of different protocols.
-    llvm::SaveAndRestore<bool> optimizeProtocolNames(OptimizeProtocolNames,
-                                                     false);
-    beginMangling();
-    bool isAssocTypeAtDepth = false;
-    (void)appendAssocType(
-        assocType->getDeclaredInterfaceType()->castTo<DependentMemberType>(),
-        isAssocTypeAtDepth);
-    appendOperator("TM");
-    return finalize();
   }
 
   std::string mangleAssociatedTypeWitnessTableAccessFunction(
@@ -445,14 +413,22 @@ public:
 
   SymbolicMangling mangleTypeForReflection(IRGenModule &IGM,
                                            Type Ty);
+  
+  SymbolicMangling mangleProtocolConformanceForReflection(IRGenModule &IGM,
+                                            Type Ty,
+                                            ProtocolConformanceRef conformance);
 
   std::string mangleTypeForLLVMTypeName(CanType Ty);
 
   std::string mangleProtocolForLLVMTypeName(ProtocolCompositionType *type);
 
   std::string mangleSymbolNameForSymbolicMangling(
-                                              const SymbolicMangling &mangling);
+                                              const SymbolicMangling &mangling,
+                                              MangledTypeRefRole role);
 protected:
+  SymbolicMangling
+  withSymbolicReferences(IRGenModule &IGM,
+                         llvm::function_ref<void ()> body);
 
   std::string mangleTypeSymbol(Type type, const char *Op) {
     beginMangling();

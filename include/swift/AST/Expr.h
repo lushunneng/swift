@@ -536,22 +536,11 @@ public:
   LLVM_ATTRIBUTE_DEPRECATED(
       void dump() const LLVM_ATTRIBUTE_USED,
       "only for use within the debugger");
-  LLVM_ATTRIBUTE_DEPRECATED(
-      void dump(llvm::function_ref<Type(const Expr *)> getType,
-                llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc)
-          const LLVM_ATTRIBUTE_USED,
-      "only for use within the debugger");
-  LLVM_ATTRIBUTE_DEPRECATED(
-      void dump(raw_ostream &OS, llvm::function_ref<Type(const Expr *)> getType,
-                llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc)
-          const LLVM_ATTRIBUTE_USED,
-      "only for use within the debugger");
-
-  void dump(raw_ostream &OS) const;
-  void print(raw_ostream &OS, unsigned Indent = 0) const;
-  void print(raw_ostream &OS, llvm::function_ref<Type(const Expr *)> getType,
-             llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc,
-             unsigned Indent = 0) const;
+  void dump(raw_ostream &OS, unsigned Indent = 0) const;
+  void dump(raw_ostream &OS, llvm::function_ref<Type(const Expr *)> getType,
+            llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc,
+            unsigned Indent = 0) const;
+  
   void print(ASTPrinter &Printer, const PrintOptions &Opts) const;
 
   // Only allow allocation of Exprs using the allocator in ASTContext
@@ -2114,10 +2103,10 @@ public:
   /// that trailing commas are currently allowed, and that invalid code may have
   /// stray or missing commas.
   MutableArrayRef<SourceLoc> getCommaLocs() {
-    return {getTrailingSourceLocs(), Bits.CollectionExpr.NumCommas};
+    return {getTrailingSourceLocs(), static_cast<size_t>(Bits.CollectionExpr.NumCommas)};
   }
   ArrayRef<SourceLoc> getCommaLocs() const {
-    return {getTrailingSourceLocs(), Bits.CollectionExpr.NumCommas};
+    return {getTrailingSourceLocs(), static_cast<size_t>(Bits.CollectionExpr.NumCommas)};
   }
   unsigned getNumCommas() const { return Bits.CollectionExpr.NumCommas; }
 
@@ -2911,7 +2900,7 @@ public:
 
   ArrayRef<int> getElementMapping() const {
     return {getTrailingObjects<int>(),
-            Bits.TupleShuffleExpr.NumElementMappings};
+            static_cast<size_t>(Bits.TupleShuffleExpr.NumElementMappings)};
   }
 
   /// What is the type impact of this shuffle?
@@ -2938,7 +2927,7 @@ public:
   /// Retrieve the argument indices for the variadic arguments.
   ArrayRef<unsigned> getVariadicArgs() const {
     return {getTrailingObjects<unsigned>(),
-            Bits.TupleShuffleExpr.NumVariadicArgs};
+            static_cast<size_t>(Bits.TupleShuffleExpr.NumVariadicArgs)};
   }
 
   /// Retrieve the owner of the default arguments.
@@ -2947,13 +2936,13 @@ public:
   /// Retrieve the caller-defaulted arguments.
   ArrayRef<Expr *> getCallerDefaultArgs() const {
     return {getTrailingObjects<Expr*>(),
-            Bits.TupleShuffleExpr.NumCallerDefaultArgs};
+            static_cast<size_t>(Bits.TupleShuffleExpr.NumCallerDefaultArgs)};
   }
 
   /// Retrieve the caller-defaulted arguments.
   MutableArrayRef<Expr *> getCallerDefaultArgs() {
     return {getTrailingObjects<Expr*>(),
-            Bits.TupleShuffleExpr.NumCallerDefaultArgs};
+            static_cast<size_t>(Bits.TupleShuffleExpr.NumCallerDefaultArgs)};
   }
 
   static bool classof(const Expr *E) {

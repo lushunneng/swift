@@ -428,8 +428,8 @@ namespace {
     }
 
     void printRec(Decl *D) { D->dump(OS, Indent + 2); }
-    void printRec(Expr *E) { E->print(OS, Indent + 2); }
-    void printRec(Stmt *S, const ASTContext &Ctx) { S->print(OS, &Ctx, Indent + 2); }
+    void printRec(Expr *E) { E->dump(OS, Indent + 2); }
+    void printRec(Stmt *S, const ASTContext &Ctx) { S->dump(OS, &Ctx, Indent + 2); }
     void printRec(TypeRepr *T);
     void printRec(const Pattern *P) {
       PrintPattern(OS, Indent+2).visit(const_cast<Pattern *>(P));
@@ -556,8 +556,8 @@ namespace {
     }
     
     void printRec(Decl *D) { PrintDecl(OS, Indent + 2).visit(D); }
-    void printRec(Expr *E) { E->print(OS, Indent+2); }
-    void printRec(Stmt *S, const ASTContext &Ctx) { S->print(OS, &Ctx, Indent+2); }
+    void printRec(Expr *E) { E->dump(OS, Indent+2); }
+    void printRec(Stmt *S, const ASTContext &Ctx) { S->dump(OS, &Ctx, Indent+2); }
     void printRec(Pattern *P) { PrintPattern(OS, Indent+2).visit(P); }
     void printRec(TypeRepr *T);
 
@@ -1169,30 +1169,43 @@ namespace {
       PrintWithColorRAII(OS, ParenthesisColor) << ')';
     }
 
+    void printOperatorIdentifiers(OperatorDecl *OD) {
+      auto identifiers = OD->getIdentifiers();
+      for (auto index : indices(identifiers)) {
+        OS.indent(Indent + 2);
+        OS << "identifier #" << index << " " << identifiers[index];
+        if (index != identifiers.size() - 1)
+          OS << "\n";
+      }
+    }
+
     void visitInfixOperatorDecl(InfixOperatorDecl *IOD) {
-      printCommon(IOD, "infix_operator_decl ");
-      OS << IOD->getName() << "\n";
-      OS.indent(Indent+2);
-      if (!IOD->getFirstIdentifier().empty())
-        OS << "first identifier " << IOD->getFirstIdentifier();
-      else
-        OS << "first identifier <null>";
-      if (!IOD->getSecondIdentifier().empty())
-        OS << "second identifier " << IOD->getSecondIdentifier();
-      else
-        OS << "second identifier <null>";
+      printCommon(IOD, "infix_operator_decl");
+      OS << " " << IOD->getName();
+      if (!IOD->getIdentifiers().empty()) {
+        OS << "\n";
+        printOperatorIdentifiers(IOD);
+      }
       PrintWithColorRAII(OS, ParenthesisColor) << ')';
     }
 
     void visitPrefixOperatorDecl(PrefixOperatorDecl *POD) {
-      printCommon(POD, "prefix_operator_decl ");
-      OS << POD->getName();
+      printCommon(POD, "prefix_operator_decl");
+      OS << " " << POD->getName();
+      if (!POD->getIdentifiers().empty()) {
+        OS << "\n";
+        printOperatorIdentifiers(POD);
+      }
       PrintWithColorRAII(OS, ParenthesisColor) << ')';
     }
 
     void visitPostfixOperatorDecl(PostfixOperatorDecl *POD) {
-      printCommon(POD, "postfix_operator_decl ");
-      OS << POD->getName();
+      printCommon(POD, "postfix_operator_decl");
+      OS << " " << POD->getName();
+      if (!POD->getIdentifiers().empty()) {
+        OS << "\n";
+        printOperatorIdentifiers(POD);
+      }
       PrintWithColorRAII(OS, ParenthesisColor) << ')';
     }
 
@@ -1372,7 +1385,7 @@ void Pattern::dump() const {
 //===----------------------------------------------------------------------===//
 
 namespace {
-/// PrintStmt - Visitor implementation of Expr::print.
+/// PrintStmt - Visitor implementation of Stmt::dump.
 class PrintStmt : public StmtVisitor<PrintStmt> {
 public:
   raw_ostream &OS;
@@ -1393,7 +1406,7 @@ public:
   }
 
   void printRec(Decl *D) { D->dump(OS, Indent + 2); }
-  void printRec(Expr *E) { E->print(OS, Indent + 2); }
+  void printRec(Expr *E) { E->dump(OS, Indent + 2); }
   void printRec(const Pattern *P) {
     PrintPattern(OS, Indent+2).visit(const_cast<Pattern *>(P));
   }
@@ -1617,7 +1630,7 @@ public:
       }
       if (auto *Guard = LabelItem.getGuardExpr()) {
         OS << '\n';
-        Guard->print(OS, Indent+4);
+        Guard->dump(OS, Indent+4);
       }
       PrintWithColorRAII(OS, ParenthesisColor) << ')';
     }
@@ -1666,11 +1679,11 @@ public:
 } // end anonymous namespace
 
 void Stmt::dump() const {
-  print(llvm::errs());
+  dump(llvm::errs());
   llvm::errs() << '\n';
 }
 
-void Stmt::print(raw_ostream &OS, const ASTContext *Ctx, unsigned Indent) const {
+void Stmt::dump(raw_ostream &OS, const ASTContext *Ctx, unsigned Indent) const {
   PrintStmt(OS, Ctx, Indent).visit(const_cast<Stmt*>(this));
 }
 
@@ -1679,7 +1692,7 @@ void Stmt::print(raw_ostream &OS, const ASTContext *Ctx, unsigned Indent) const 
 //===----------------------------------------------------------------------===//
 
 namespace {
-/// PrintExpr - Visitor implementation of Expr::print.
+/// PrintExpr - Visitor implementation of Expr::dump.
 class PrintExpr : public ExprVisitor<PrintExpr> {
 public:
   raw_ostream &OS;
@@ -1717,7 +1730,7 @@ public:
   /// FIXME: This should use ExprWalker to print children.
 
   void printRec(Decl *D) { D->dump(OS, Indent + 2); }
-  void printRec(Stmt *S, const ASTContext &Ctx) { S->print(OS, &Ctx, Indent + 2); }
+  void printRec(Stmt *S, const ASTContext &Ctx) { S->dump(OS, &Ctx, Indent + 2); }
   void printRec(const Pattern *P) {
     PrintPattern(OS, Indent+2).visit(const_cast<Pattern *>(P));
   }
@@ -2581,7 +2594,7 @@ public:
         OS << "subscript ";
         printDeclRef(component.getDeclRef());
         OS << '\n';
-        component.getIndexExpr()->print(OS, Indent + 4);
+        component.getIndexExpr()->dump(OS, Indent + 4);
         OS.indent(Indent + 4);
         break;
       
@@ -2594,7 +2607,7 @@ public:
       case KeyPathExpr::Component::Kind::UnresolvedSubscript:
         OS << "unresolved_subscript";
         OS << '\n';
-        component.getIndexExpr()->print(OS, Indent + 4);
+        component.getIndexExpr()->dump(OS, Indent + 4);
         OS.indent(Indent + 4);
         break;
       case KeyPathExpr::Component::Kind::Identity:
@@ -2642,41 +2655,12 @@ public:
 
 } // end anonymous namespace
 
-void Expr::dump(
-    raw_ostream &OS, llvm::function_ref<Type(const Expr *)> getTypeOfExpr,
-    llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc) const {
-  if (auto ty = getTypeOfExpr(this)) {
-    llvm::SaveAndRestore<bool> X(
-        ty->getASTContext().LangOpts.DebugConstraintSolver, true);
-    print(OS, getTypeOfExpr, getTypeOfTypeLoc);
-  } else {
-    print(OS, getTypeOfExpr, getTypeOfTypeLoc);
-  }
-  OS << '\n';
-}
-
-void Expr::dump(raw_ostream &OS) const {
-  if (auto ty = getType()) {
-    llvm::SaveAndRestore<bool> X(ty->getASTContext().LangOpts.
-                                 DebugConstraintSolver, true);
-    print(OS);
-  } else {
-    print(OS);
-  }
-  OS << '\n';
-}
-
 void Expr::dump() const {
   dump(llvm::errs());
+  llvm::errs() << "\n";
 }
 
-void Expr::dump(
-    llvm::function_ref<Type(const Expr *)> getTypeOfExpr,
-    llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc) const {
-  dump(llvm::errs(), getTypeOfExpr, getTypeOfTypeLoc);
-}
-
-void Expr::print(raw_ostream &OS,
+void Expr::dump(raw_ostream &OS,
                  llvm::function_ref<Type(const Expr *)> getTypeOfExpr,
                  llvm::function_ref<Type(const TypeLoc &)> getTypeOfTypeLoc,
                  unsigned Indent) const {
@@ -2684,19 +2668,19 @@ void Expr::print(raw_ostream &OS,
       .visit(const_cast<Expr *>(this));
 }
 
-void Expr::print(raw_ostream &OS, unsigned Indent) const {
+void Expr::dump(raw_ostream &OS, unsigned Indent) const {
   auto getTypeOfExpr = [](const Expr *E) -> Type { return E->getType(); };
   auto getTypeOfTypeLoc = [](const TypeLoc &TL) -> Type {
     return TL.getType();
   };
-  print(OS, getTypeOfExpr, getTypeOfTypeLoc, Indent);
+  dump(OS, getTypeOfExpr, getTypeOfTypeLoc, Indent);
 }
 
 void Expr::print(ASTPrinter &Printer, const PrintOptions &Opts) const {
   // FIXME: Fully use the ASTPrinter.
   llvm::SmallString<128> Str;
   llvm::raw_svector_ostream OS(Str);
-  print(OS);
+  dump(OS);
   Printer << OS.str();
 }
 
@@ -2718,7 +2702,7 @@ public:
   }
 
   void printRec(Decl *D) { D->dump(OS, Indent + 2); }
-  void printRec(Expr *E) { E->print(OS, Indent + 2); }
+  void printRec(Expr *E) { E->dump(OS, Indent + 2); }
   void printRec(TypeRepr *T) { PrintTypeRepr(OS, Indent + 2).visit(T); }
 
   raw_ostream &printCommon(const char *Name) {
@@ -3160,6 +3144,12 @@ namespace {
       printFlag(paramFlags.isVariadic(), "vararg");
       printFlag(paramFlags.isAutoClosure(), "autoclosure");
       printFlag(paramFlags.isEscaping(), "escaping");
+      switch (paramFlags.getValueOwnership()) {
+      case ValueOwnership::Default: break;
+      case ValueOwnership::Owned: printFlag("owned"); break;
+      case ValueOwnership::Shared: printFlag("shared"); break;
+      case ValueOwnership::InOut: printFlag("inout"); break;
+      }
     }
 
   public:
@@ -3411,7 +3401,7 @@ namespace {
         if (param.hasLabel())
           printField("name", param.getLabel().str());
         dumpParameterFlags(param.getParameterFlags());
-        printRec(param.getOldType());
+        printRec(param.getPlainType());
         OS << ")";
       }
       Indent -= 2;

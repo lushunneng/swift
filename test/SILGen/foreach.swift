@@ -59,15 +59,12 @@ protocol GenericCollection : Collection {
 // CHECK: [[LOOP_DEST]]:
 // CHECK:   switch_enum [[IND_VAR:%.*]] : $Optional<Int>, case #Optional.some!enumelt.1: [[SOME_BB:bb[0-9]+]], case #Optional.none!enumelt: [[NONE_BB:bb[0-9]+]]
 //
-// CHECK: [[NONE_BB]]:
-// CHECK:   br [[CONT_BLOCK:bb[0-9]+]]
-//
 // CHECK: [[SOME_BB]]([[VAR:%.*]] : @trivial $Int):
 // CHECK:   [[LOOP_END_FUNC:%.*]] = function_ref @loopBodyEnd : $@convention(thin) () -> ()
 // CHECK:   apply [[LOOP_END_FUNC]]()
 // CHECK:   br [[LOOP_DEST]]
 //
-// CHECK: [[CONT_BLOCK]]:
+// CHECK: [[NONE_BB]]:
 // CHECK:   destroy_value [[ITERATOR_BOX]]
 // CHECK:   [[FUNC_END_FUNC:%.*]] = function_ref @funcEnd : $@convention(thin) () -> ()
 // CHECK:   apply [[FUNC_END_FUNC]]()
@@ -110,8 +107,8 @@ func trivialStructBreak(_ xx: [Int]) {
 // CHECK:   [[ITERATOR_BOX:%.*]] = alloc_box ${ var IndexingIterator<Array<Int>> }, var, name "$x$generator"
 // CHECK:   [[PROJECT_ITERATOR_BOX:%.*]] = project_box [[ITERATOR_BOX]]
 // CHECK:   [[BORROWED_ARRAY_STACK:%.*]] = alloc_stack $Array<Int>
-// CHECK:   store_borrow [[ARRAY]] to [[BORROWED_ARRAY_STACK]]
-// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = function_ref @$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF : $@convention(method) <τ_0_0 where τ_0_0 : Collection, τ_0_0.Iterator == IndexingIterator<τ_0_0>> (@in_guaranteed τ_0_0) -> @out IndexingIterator<τ_0_0>
+// CHECK:   store [[ARRAY_COPY:%.*]] to [init] [[BORROWED_ARRAY_STACK]]
+// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = function_ref @$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF
 // CHECK:   apply [[MAKE_ITERATOR_FUNC]]<[Int]>([[PROJECT_ITERATOR_BOX]], [[BORROWED_ARRAY_STACK]])
 // CHECK:   br [[LOOP_DEST:bb[0-9]+]]
 //
@@ -122,9 +119,6 @@ func trivialStructBreak(_ xx: [Int]) {
 // CHECK:   apply [[FUNC_REF]]<[Int]>([[GET_ELT_STACK]], [[WRITE]])
 // CHECK:   [[IND_VAR:%.*]] = load [trivial] [[GET_ELT_STACK]]
 // CHECK:   switch_enum [[IND_VAR]] : $Optional<Int>, case #Optional.some!enumelt.1: [[SOME_BB:bb[0-9]+]], case #Optional.none!enumelt: [[NONE_BB:bb[0-9]+]]
-//
-// CHECK: [[NONE_BB]]:
-// CHECK:   br [[CONT_BLOCK_JUMP:bb[0-9]+]]
 //
 // CHECK: [[SOME_BB]]([[VAR:%.*]] : @trivial $Int):
 // CHECK:   cond_br {{%.*}}, [[LOOP_BREAK_END_BLOCK:bb[0-9]+]], [[CONTINUE_CHECK_BLOCK:bb[0-9]+]]
@@ -147,7 +141,7 @@ func trivialStructBreak(_ xx: [Int]) {
 // CHECK:   apply [[LOOP_BODY_FUNC]]()
 // CHECK:   br [[LOOP_DEST]]
 //
-// CHECK: [[CONT_BLOCK_JUMP]]:
+// CHECK: [[NONE_BB]]:
 // CHECK:   br [[CONT_BLOCK]]
 //
 // CHECK: [[CONT_BLOCK]]
@@ -213,8 +207,8 @@ func existentialBreak(_ xx: [P]) {
 // CHECK:   [[ITERATOR_BOX:%.*]] = alloc_box ${ var IndexingIterator<Array<P>> }, var, name "$x$generator"
 // CHECK:   [[PROJECT_ITERATOR_BOX:%.*]] = project_box [[ITERATOR_BOX]]
 // CHECK:   [[BORROWED_ARRAY_STACK:%.*]] = alloc_stack $Array<P>
-// CHECK:   store_borrow [[ARRAY]] to [[BORROWED_ARRAY_STACK]]
-// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = function_ref @$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF : $@convention(method) <τ_0_0 where τ_0_0 : Collection, τ_0_0.Iterator == IndexingIterator<τ_0_0>> (@in_guaranteed τ_0_0) -> @out IndexingIterator<τ_0_0>
+// CHECK:   store [[ARRAY_COPY:%.*]] to [init] [[BORROWED_ARRAY_STACK]]
+// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = function_ref @$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF
 // CHECK:   apply [[MAKE_ITERATOR_FUNC]]<[P]>([[PROJECT_ITERATOR_BOX]], [[BORROWED_ARRAY_STACK]])
 // CHECK:   [[ELT_STACK:%.*]] = alloc_stack $Optional<P>
 // CHECK:   br [[LOOP_DEST:bb[0-9]+]]
@@ -224,9 +218,6 @@ func existentialBreak(_ xx: [P]) {
 // CHECK:   [[FUNC_REF:%.*]] = function_ref @$ss16IndexingIteratorV4next7ElementQzSgyF : $@convention(method)
 // CHECK:   apply [[FUNC_REF]]<[P]>([[ELT_STACK]], [[WRITE]])
 // CHECK:   switch_enum_addr [[ELT_STACK]] : $*Optional<P>, case #Optional.some!enumelt.1: [[SOME_BB:bb[0-9]+]], case #Optional.none!enumelt: [[NONE_BB:bb[0-9]+]]
-//
-// CHECK: [[NONE_BB]]:
-// CHECK:   br [[CONT_BLOCK_JUMP:bb[0-9]+]]
 //
 // CHECK: [[SOME_BB]]:
 // CHECK:   [[T0:%.*]] = alloc_stack $P, let, name "x"
@@ -258,7 +249,7 @@ func existentialBreak(_ xx: [P]) {
 // CHECK:   dealloc_stack [[T0]]
 // CHECK:   br [[LOOP_DEST]]
 //
-// CHECK: [[CONT_BLOCK_JUMP]]:
+// CHECK: [[NONE_BB]]:
 // CHECK:   br [[CONT_BLOCK]]
 //
 // CHECK: [[CONT_BLOCK]]
@@ -376,8 +367,8 @@ func genericStructBreak<T>(_ xx: [GenericStruct<T>]) {
 // CHECK:   [[ITERATOR_BOX:%.*]] = alloc_box $<τ_0_0> { var IndexingIterator<Array<GenericStruct<τ_0_0>>> } <T>, var, name "$x$generator"
 // CHECK:   [[PROJECT_ITERATOR_BOX:%.*]] = project_box [[ITERATOR_BOX]]
 // CHECK:   [[BORROWED_ARRAY_STACK:%.*]] = alloc_stack $Array<GenericStruct<T>>
-// CHECK:   store_borrow [[ARRAY]] to [[BORROWED_ARRAY_STACK]]
-// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = function_ref @$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF : $@convention(method) <τ_0_0 where τ_0_0 : Collection, τ_0_0.Iterator == IndexingIterator<τ_0_0>> (@in_guaranteed τ_0_0) -> @out IndexingIterator<τ_0_0>
+// CHECK:   store [[ARRAY_COPY:%.*]] to [init] [[BORROWED_ARRAY_STACK]]
+// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = function_ref @$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF
 // CHECK:   apply [[MAKE_ITERATOR_FUNC]]<[GenericStruct<T>]>([[PROJECT_ITERATOR_BOX]], [[BORROWED_ARRAY_STACK]])
 // CHECK:   [[ELT_STACK:%.*]] = alloc_stack $Optional<GenericStruct<T>>
 // CHECK:   br [[LOOP_DEST:bb[0-9]+]]
@@ -387,9 +378,6 @@ func genericStructBreak<T>(_ xx: [GenericStruct<T>]) {
 // CHECK:   [[FUNC_REF:%.*]] = function_ref @$ss16IndexingIteratorV4next7ElementQzSgyF : $@convention(method)
 // CHECK:   apply [[FUNC_REF]]<[GenericStruct<T>]>([[ELT_STACK]], [[WRITE]])
 // CHECK:   switch_enum_addr [[ELT_STACK]] : $*Optional<GenericStruct<T>>, case #Optional.some!enumelt.1: [[SOME_BB:bb[0-9]+]], case #Optional.none!enumelt: [[NONE_BB:bb[0-9]+]]
-//
-// CHECK: [[NONE_BB]]:
-// CHECK:   br [[CONT_BLOCK_JUMP:bb[0-9]+]]
 //
 // CHECK: [[SOME_BB]]:
 // CHECK:   [[T0:%.*]] = alloc_stack $GenericStruct<T>, let, name "x"
@@ -421,7 +409,7 @@ func genericStructBreak<T>(_ xx: [GenericStruct<T>]) {
 // CHECK:   dealloc_stack [[T0]]
 // CHECK:   br [[LOOP_DEST]]
 //
-// CHECK: [[CONT_BLOCK_JUMP]]:
+// CHECK: [[NONE_BB]]:
 // CHECK:   br [[CONT_BLOCK]]
 //
 // CHECK: [[CONT_BLOCK]]
@@ -486,8 +474,8 @@ func genericCollectionBreak<T : Collection>(_ xx: T) {
 // CHECK: bb0([[COLLECTION:%.*]] : @trivial $*T):
 // CHECK:   [[ITERATOR_BOX:%.*]] = alloc_box $<τ_0_0 where τ_0_0 : Collection> { var τ_0_0.Iterator } <T>, var, name "$x$generator"
 // CHECK:   [[PROJECT_ITERATOR_BOX:%.*]] = project_box [[ITERATOR_BOX]]
-// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = witness_method $T, #Sequence.makeIterator!1 : <Self where Self : Sequence> (Self) -> () -> Self.Iterator : $@convention(witness_method: Sequence) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @out τ_0_0.Iterator
-// CHECK:   apply [[MAKE_ITERATOR_FUNC]]<T>([[PROJECT_ITERATOR_BOX]], [[COLLECTION]])
+// CHECK:   [[MAKE_ITERATOR_FUNC:%.*]] = witness_method $T, #Sequence.makeIterator!1
+// CHECK:   apply [[MAKE_ITERATOR_FUNC]]<T>([[PROJECT_ITERATOR_BOX]], [[COLLECTION_COPY:%.*]])
 // CHECK:   [[ELT_STACK:%.*]] = alloc_stack $Optional<T.Element>
 // CHECK:   br [[LOOP_DEST:bb[0-9]+]]
 //
@@ -496,9 +484,6 @@ func genericCollectionBreak<T : Collection>(_ xx: T) {
 // CHECK:   [[GET_NEXT_FUNC:%.*]] = witness_method $T.Iterator, #IteratorProtocol.next!1 : <Self where Self : IteratorProtocol> (inout Self) -> () -> Self.Element? : $@convention(witness_method: IteratorProtocol) <τ_0_0 where τ_0_0 : IteratorProtocol> (@inout τ_0_0) -> @out Optional<τ_0_0.Element>
 // CHECK:   apply [[GET_NEXT_FUNC]]<T.Iterator>([[ELT_STACK]], [[WRITE]])
 // CHECK:   switch_enum_addr [[ELT_STACK]] : $*Optional<T.Element>, case #Optional.some!enumelt.1: [[SOME_BB:bb[0-9]+]], case #Optional.none!enumelt: [[NONE_BB:bb[0-9]+]]
-//
-// CHECK: [[NONE_BB]]:
-// CHECK:   br [[CONT_BLOCK_JUMP:bb[0-9]+]]
 //
 // CHECK: [[SOME_BB]]:
 // CHECK:   [[T0:%.*]] = alloc_stack $T.Element, let, name "x"
@@ -530,7 +515,7 @@ func genericCollectionBreak<T : Collection>(_ xx: T) {
 // CHECK:   dealloc_stack [[T0]]
 // CHECK:   br [[LOOP_DEST]]
 //
-// CHECK: [[CONT_BLOCK_JUMP]]:
+// CHECK: [[NONE_BB]]:
 // CHECK:   br [[CONT_BLOCK]]
 //
 // CHECK: [[CONT_BLOCK]]
@@ -562,27 +547,27 @@ func genericCollectionContinueBreak<T : Collection>(_ xx: T) {
 
 // CHECK-LABEL: sil hidden @$s7foreach13tupleElementsyySayAA1CC_ADtGF
 func tupleElements(_ xx: [(C, C)]) {
-  // CHECK: bb3([[PAYLOAD:%.*]] : @owned $(C, C)):
+  // CHECK: bb{{.*}}([[PAYLOAD:%.*]] : @owned $(C, C)):
   // CHECK: ([[A:%.*]], [[B:%.*]]) = destructure_tuple [[PAYLOAD]]
   // CHECK: destroy_value [[B]]
   // CHECK: destroy_value [[A]]
   for (a, b) in xx {}
-  // CHECK: bb7([[PAYLOAD:%.*]] : @owned $(C, C)):
+  // CHECK: bb{{.*}}([[PAYLOAD:%.*]] : @owned $(C, C)):
   // CHECK: ([[A:%.*]], [[B:%.*]]) = destructure_tuple [[PAYLOAD]]
   // CHECK: destroy_value [[B]]
   // CHECK: destroy_value [[A]]
   for (a, _) in xx {}
-  // CHECK: bb11([[PAYLOAD:%.*]] : @owned $(C, C)):
+  // CHECK: bb{{.*}}([[PAYLOAD:%.*]] : @owned $(C, C)):
   // CHECK: ([[A:%.*]], [[B:%.*]]) = destructure_tuple [[PAYLOAD]]
   // CHECK: destroy_value [[A]]
   // CHECK: destroy_value [[B]]
   for (_, b) in xx {}
-  // CHECK: bb15([[PAYLOAD:%.*]] : @owned $(C, C)):
+  // CHECK: bb{{.*}}([[PAYLOAD:%.*]] : @owned $(C, C)):
   // CHECK: ([[A:%.*]], [[B:%.*]]) = destructure_tuple [[PAYLOAD]]
   // CHECK: destroy_value [[B]]
   // CHECK: destroy_value [[A]]
   for (_, _) in xx {}
-  // CHECK: bb19([[PAYLOAD:%.*]] : @owned $(C, C)):
+  // CHECK: bb{{.*}}([[PAYLOAD:%.*]] : @owned $(C, C)):
   // CHECK: ([[A:%.*]], [[B:%.*]]) = destructure_tuple [[PAYLOAD]]
   // CHECK: destroy_value [[B]]
   // CHECK: destroy_value [[A]]
@@ -598,9 +583,6 @@ func tupleElements(_ xx: [(C, C)]) {
 //
 // CHECK: [[LOOP_DEST]]:
 // CHECK:   switch_enum [[OPT_VAL:%.*]] : $Optional<Int>, case #Optional.some!enumelt.1: [[SOME_BB:bb[0-9]+]], case #Optional.none!enumelt: [[NONE_BB:bb[0-9]+]]
-//
-// CHECK: [[NONE_BB]]:
-// CHECK:   br [[CONT_BB:bb[0-9]+]]
 //
 // CHECK: [[SOME_BB]]([[VAL:%.*]]  : @trivial $Int):
 // CHECK:   [[LOOP_END_FUNC:%.*]] = function_ref @loopBodyEnd : $@convention(thin) () -> ()

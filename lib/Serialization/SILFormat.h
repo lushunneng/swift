@@ -76,6 +76,7 @@ enum CastConsumptionKindEncoding : uint8_t {
   SIL_CAST_CONSUMPTION_TAKE_ALWAYS,
   SIL_CAST_CONSUMPTION_TAKE_ON_SUCCESS,
   SIL_CAST_CONSUMPTION_COPY_ON_SUCCESS,
+  SIL_CAST_CONSUMPTION_BORROW_ALWAYS,
 };
 
 enum class KeyPathComponentKindEncoding : uint8_t {
@@ -107,7 +108,7 @@ enum {
 /// \sa SIL_INDEX_BLOCK_ID
 namespace sil_index_block {
   // These IDs must \em not be renumbered or reordered without incrementing
-  // VERSION_MAJOR.
+  // the module version.
   enum RecordKind {
     SIL_FUNC_NAMES = 1,
     SIL_FUNC_OFFSETS,
@@ -139,7 +140,7 @@ namespace sil_index_block {
 /// \sa SIL_BLOCK_ID
 namespace sil_block {
   // These IDs must \em not be renumbered or reordered without incrementing
-  // VERSION_MAJOR.
+  // the module version.
   enum RecordKind : uint8_t {
     SIL_FUNCTION = 1,
     SIL_BASIC_BLOCK,

@@ -32,6 +32,7 @@ class Triple;
 namespace swift {
 namespace irgen {
 class IRGenModule;
+class Alignment;
 
 /// Determine if the triple uses the DLL storage.
 bool useDllStorage(const llvm::Triple &triple);
@@ -218,11 +219,6 @@ class LinkEntity {
     /// is stored in the data.
     DefaultAssociatedConformanceAccessor,
 
-    /// A function which returns the default type metadata for the associated
-    /// type of a protocol.  The secondary pointer is a ProtocolDecl*.
-    /// The index of the associated type declaration is stored in the data.
-    DefaultAssociatedTypeMetadataAccessFunction,
-
     /// A SIL function. The pointer is a SILFunction*.
     SILFunction,
 
@@ -252,21 +248,9 @@ class LinkEntity {
     /// ProtocolConformance*.
     ProtocolWitnessTableAccessFunction,
 
-    /// A generic protocol witness table cache.  The secondary pointer is a
-    /// ProtocolConformance*.
-    GenericProtocolWitnessTableCache,
-
     /// The instantiation function for a generic protocol witness table.
     /// The secondary pointer is a ProtocolConformance*.
     GenericProtocolWitnessTableInstantiationFunction,
-
-    /// A list of key/value pairs that resiliently specify a witness table.
-    ResilientProtocolWitnessTable,
-
-    /// A function which returns the type metadata for the associated type
-    /// of a protocol.  The secondary pointer is a ProtocolConformance*.
-    /// The index of the associated type declaration is stored in the data.
-    AssociatedTypeMetadataAccessFunction,
 
     /// A function which returns the witness table for a protocol-constrained
     /// associated type of a protocol.  The secondary pointer is a
@@ -336,7 +320,7 @@ class LinkEntity {
   }
 
   static bool isDeclKind(Kind k) {
-    return k <= Kind::DefaultAssociatedTypeMetadataAccessFunction;
+    return k <= Kind::DefaultAssociatedConformanceAccessor;
   }
   static bool isTypeKind(Kind k) {
     return k >= Kind::ProtocolWitnessTableLazyAccessFunction;
@@ -752,20 +736,6 @@ public:
   }
 
   static LinkEntity
-  forGenericProtocolWitnessTableCache(const ProtocolConformance *C) {
-    LinkEntity entity;
-    entity.setForProtocolConformance(Kind::GenericProtocolWitnessTableCache, C);
-    return entity;
-  }
-
-  static LinkEntity
-  forResilientProtocolWitnessTable(const ProtocolConformance *C) {
-    LinkEntity entity;
-    entity.setForProtocolConformance(Kind::ResilientProtocolWitnessTable, C);
-    return entity;
-  }
-
-  static LinkEntity
   forGenericProtocolWitnessTableInstantiationFunction(
                                       const ProtocolConformance *C) {
     LinkEntity entity;
@@ -807,24 +777,6 @@ public:
         conformance.getSourceProtocol(),
         conformance.getAssociation(),
         conformance.getAssociatedRequirement());
-    return entity;
-  }
-
-  static LinkEntity
-  forAssociatedTypeMetadataAccessFunction(const ProtocolConformance *C,
-                                          AssociatedType association) {
-    LinkEntity entity;
-    entity.setForProtocolConformanceAndAssociatedType(
-                     Kind::AssociatedTypeMetadataAccessFunction, C,
-                     association.getAssociation());
-    return entity;
-  }
-
-  static LinkEntity
-  forDefaultAssociatedTypeMetadataAccessFunction(AssociatedType association) {
-    LinkEntity entity;
-    entity.setForDecl(Kind::DefaultAssociatedTypeMetadataAccessFunction,
-                      association.getAssociation());
     return entity;
   }
 
@@ -925,12 +877,7 @@ public:
   }
 
   AssociatedTypeDecl *getAssociatedType() const {
-    if (getKind() == Kind::AssociatedTypeMetadataAccessFunction)
-      return getAssociatedTypeByIndex(getProtocolConformance(),
-                              LINKENTITY_GET_FIELD(Data, AssociatedTypeIndex));
-
-    assert(getKind() == Kind::AssociatedTypeDescriptor ||
-           getKind() == Kind::DefaultAssociatedTypeMetadataAccessFunction);
+    assert(getKind() == Kind::AssociatedTypeDescriptor);
     return reinterpret_cast<AssociatedTypeDecl *>(Pointer);
   }
 
@@ -990,6 +937,17 @@ public:
 
     return getDecl()->isWeakImported(module);
   }
+  
+  /// Return the source file whose codegen should trigger emission of this
+  /// link entity, if one can be identified.
+  const SourceFile *getSourceFileForEmission() const;
+  
+  /// Get the preferred alignment for the definition of this entity.
+  Alignment getAlignment(IRGenModule &IGM) const;
+  
+  /// Get the default LLVM type to use for forward declarations of this
+  /// entity.
+  llvm::Type *getDefaultDeclarationType(IRGenModule &IGM) const;
 #undef LINKENTITY_GET_FIELD
 #undef LINKENTITY_SET_FIELD
 };
@@ -1048,7 +1006,8 @@ StringRef encodeForceLoadSymbolName(llvm::SmallVectorImpl<char> &buf,
 }
 
 /// Allow LinkEntity to be used as a key for a DenseMap.
-template <> struct llvm::DenseMapInfo<swift::irgen::LinkEntity> {
+namespace llvm {
+template <> struct DenseMapInfo<swift::irgen::LinkEntity> {
   using LinkEntity = swift::irgen::LinkEntity;
   static LinkEntity getEmptyKey() {
     LinkEntity entity;
@@ -1074,4 +1033,5 @@ template <> struct llvm::DenseMapInfo<swift::irgen::LinkEntity> {
            LHS.SecondaryPointer == RHS.SecondaryPointer && LHS.Data == RHS.Data;
   }
 };
+}
 #endif

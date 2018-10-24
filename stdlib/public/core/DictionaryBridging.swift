@@ -434,13 +434,10 @@ internal struct _CocoaDictionary {
   }
 }
 
-extension _CocoaDictionary: Equatable {
+extension _CocoaDictionary {
   @usableFromInline
-  internal static func ==(
-    lhs: _CocoaDictionary,
-    rhs: _CocoaDictionary
-  ) -> Bool {
-    return _stdlib_NSObject_isEqual(lhs.object, rhs.object)
+  internal func isEqual(to other: _CocoaDictionary) -> Bool {
+    return _stdlib_NSObject_isEqual(self.object, other.object)
   }
 }
 
@@ -471,8 +468,8 @@ extension _CocoaDictionary: _DictionaryBuffer {
   @usableFromInline // FIXME(cocoa-index): Should be inlinable
   @_effects(releasenone)
   internal func index(after index: Index) -> Index {
-    var result = index
-    formIndex(after: &result)
+    var result = index.copy()
+    formIndex(after: &result, isUnique: true)
     return result
   }
 
@@ -483,11 +480,9 @@ extension _CocoaDictionary: _DictionaryBuffer {
   }
 
   @usableFromInline // FIXME(cocoa-index): Should be inlinable
-  @_effects(releasenone)
-  internal func formIndex(after index: inout Index) {
+  internal func formIndex(after index: inout Index, isUnique: Bool) {
     validate(index)
-    let isUnique = index.isUniquelyReferenced()
-    if !isUnique { index.storage = index.copy() }
+    if !isUnique { index = index.copy() }
     let storage = index.storage // FIXME: rdar://problem/44863751
     storage.currentKeyIndex += 1
   }
@@ -575,17 +570,34 @@ extension _CocoaDictionary {
   @usableFromInline
   internal struct Index {
     @usableFromInline
-    internal var storage: Storage
+    internal var _object: Builtin.BridgeObject
+    @usableFromInline
+    internal var _storage: Builtin.BridgeObject
+
+    internal var object: AnyObject {
+      @inline(__always)
+      get {
+        return _bridgeObject(toNonTaggedObjC: _object)
+      }
+    }
+
+    internal var storage: Storage {
+      @inline(__always)
+      get {
+        let storage = _bridgeObject(toNative: _storage)
+        return unsafeDowncast(storage, to: Storage.self)
+      }
+    }
 
     internal init(_ storage: Storage) {
-      self.storage = storage
+      self._object = _bridgeObject(fromNonTaggedObjC: storage.base.object)
+      self._storage = _bridgeObject(fromNative: storage)
     }
   }
 }
 
 extension _CocoaDictionary.Index {
   // FIXME(cocoa-index): Try using an NSEnumerator to speed this up.
-  @usableFromInline
   internal class Storage {
   // Assumption: we rely on NSDictionary.getObjects when being
     // repeatedly called on the same NSDictionary, returning items in the same
@@ -618,15 +630,29 @@ extension _CocoaDictionary.Index {
 }
 
 extension _CocoaDictionary.Index {
-  @inlinable
-  internal mutating func isUniquelyReferenced() -> Bool {
-    return _isUnique_native(&storage)
+  @usableFromInline
+  internal var handleBitPattern: UInt {
+    @_effects(readonly)
+    get {
+      return unsafeBitCast(storage, to: UInt.self)
+    }
   }
 
   @usableFromInline
-  internal mutating func copy() -> Storage {
+  internal var dictionary: _CocoaDictionary {
+    @_effects(releasenone)
+    get {
+      return storage.base
+    }
+  }
+
+  @usableFromInline
+  internal func copy() -> _CocoaDictionary.Index {
     let storage = self.storage
-    return Storage(storage.base, storage.allKeys, storage.currentKeyIndex)
+    return _CocoaDictionary.Index(Storage(
+        storage.base,
+        storage.allKeys,
+        storage.currentKeyIndex))
   }
 }
 
@@ -647,7 +673,7 @@ extension _CocoaDictionary.Index {
   internal var age: Int32 {
     @_effects(readonly)
     get {
-      return _HashTable.age(for: storage.base.object)
+      return _HashTable.age(for: object)
     }
   }
 }
@@ -776,12 +802,10 @@ extension _CocoaDictionary.Iterator: IteratorProtocol {
 extension Dictionary {
   @inlinable
   public __consuming func _bridgeToObjectiveCImpl() -> _NSDictionaryCore {
-    switch _variant {
-    case .native(let nativeDictionary):
-      return nativeDictionary.bridged()
-    case .cocoa(let cocoaDictionary):
-      return cocoaDictionary.object
+    guard _variant.isNative else {
+      return _variant.asCocoa.object
     }
+    return _variant.asNative.bridged()
   }
 
   /// Returns the native Dictionary hidden inside this NSDictionary;

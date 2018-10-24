@@ -11,8 +11,8 @@ import gizmo
 // CHECK: @"$sSo16NSRuncingOptionsVMn" = linkonce_odr hidden constant
 // CHECK: @"$sSo16NSRuncingOptionsVN" = linkonce_odr hidden constant
 //   CHECK-SAME: @"$sBi{{[0-9]+}}_WV"
-// CHECK: @"$sSo16NSRuncingOptionsVSQSCMc" = linkonce_odr hidden constant %swift.protocol_conformance_descriptor { {{.*}}@"$sSo16NSRuncingOptionsVSQSCWa
-// CHECK: @"$sSo28NeverActuallyMentionedByNameVSQSCWp" = linkonce_odr hidden constant
+// CHECK: @"$sSo16NSRuncingOptionsVSQSCMc" = linkonce_odr hidden constant{{.*}}@"$sSo16NSRuncingOptionsVSQSCWa
+// CHECK-NOT: @"$sSo28NeverActuallyMentionedByNameVSQSCWp" = linkonce_odr hidden constant
 
 // CHECK-LABEL: define{{( dllexport)?}}{{( protected)?}} i32 @main
 // CHECK:         call swiftcc %swift.metadata_response @"$sSo16NSRuncingOptionsVMa"(i64 0)
@@ -90,7 +90,7 @@ use_metadata(NSRuncingOptions.mince)
 // CHECK:         call swiftcc %swift.metadata_response @swift_getForeignTypeMetadata([[INT]] %0, {{.*}} @"$sSo16NSRuncingOptionsVN" {{.*}}) [[NOUNWIND_READNONE:#[0-9]+]]
 
 // CHECK-LABEL: define linkonce_odr hidden i8** @"$sSo16NSRuncingOptionsVSQSCWa"()
-// CHECK:  [[NONUNIQUE:%.*]] = call i8** @swift_getGenericWitnessTable(%swift.generic_witness_table_cache* @"$sSo16NSRuncingOptionsVSQSCWG", %swift.type* null, i8*** null)
+// CHECK:  [[NONUNIQUE:%.*]] = call i8** @swift_instantiateWitnessTable(%swift.protocol_conformance_descriptor* bitcast{{.*}}@"$sSo16NSRuncingOptionsVSQSCMc" to %swift.protocol_conformance_descriptor*), %swift.type* null, i8*** null)
 // CHECK:  [[UNIQUE:%.*]] = call i8** @swift_getForeignWitnessTable(i8** [[NONUNIQUE]], %swift.type_descriptor* bitcast (<{ {{.*}} }>* @"$sSo16NSRuncingOptionsVMn" to %swift.type_descriptor*), %swift.protocol* @"$sSQMp")
 // CHECK:  ret i8** [[UNIQUE]]
 

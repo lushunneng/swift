@@ -163,6 +163,7 @@ public:
   RequirementFailure(Expr *expr, ConstraintSystem &cs,
                      ConstraintLocator *locator)
       : FailureDiagnostic(expr, cs, locator), AffectedDecl(getDeclRef()) {
+    assert(AffectedDecl);
     auto *anchor = getAnchor();
     expr->forEachChildExpr([&](Expr *subExpr) -> Expr * {
       auto *AE = dyn_cast<ApplyExpr>(subExpr);
@@ -185,6 +186,9 @@ public:
 
   /// The generic base type where failing requirement comes from.
   Type getOwnerType() const;
+
+  /// Generic context associated with the failure.
+  const GenericContext *getGenericContext() const;
 
   /// Generic requirement associated with the failure.
   const Requirement &getRequirement() const;

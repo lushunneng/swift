@@ -404,12 +404,36 @@ public:
     explicit ResolveToDemanglingForContext(Demangle::Demangler &Dem)
       : Dem(Dem) {}
     
-    Demangle::NodePointer operator()(int32_t offset, const void *base) {
-      auto descriptor =
-        (const ContextDescriptor *)detail::applyRelativeOffset(base, offset);
-      
-      return _buildDemanglingForContext(descriptor, {}, Dem);
-    }
+    Demangle::NodePointer operator()(Demangle::SymbolicReferenceKind kind,
+                                     Demangle::Directness isIndirect,
+                                     int32_t offset,
+                                     const void *base);
+  };
+
+  /// Symbolic reference resolver that resolves the absolute addresses of
+  /// symbolic references but leaves them as references.
+  class ResolveAsSymbolicReference {
+    Demangle::Demangler &Dem;
+  public:
+    explicit ResolveAsSymbolicReference(Demangle::Demangler &Dem)
+      : Dem(Dem) {}
+    
+    Demangle::NodePointer operator()(Demangle::SymbolicReferenceKind kind,
+                                     Demangle::Directness isIndirect,
+                                     int32_t offset,
+                                     const void *base);
+  };
+  
+  /// Demangler resolver that turns resolved symbolic references into their
+  /// demangling trees.
+  class ExpandResolvedSymbolicReferences {
+    Demangle::Demangler &Dem;
+  public:
+    explicit ExpandResolvedSymbolicReferences(Demangle::Demangler &Dem)
+      : Dem(Dem) {}
+    
+    Demangle::NodePointer operator()(Demangle::SymbolicReferenceKind kind,
+                                     const void *resolvedReference);
   };
 
   /// Is the given type imported from a C tag type?
@@ -427,6 +451,11 @@ public:
                            const Metadata *type,
                            ProtocolDescriptorRef protocol,
                            const WitnessTable **conformance);
+
+  /// Given a type that we know conforms to the given protocol, find the
+  /// superclass that introduced the conformance.
+  const Metadata *findConformingSuperclass(const Metadata *type,
+                                           const ProtocolDescriptor *protocol);
 
 } // end namespace swift
 

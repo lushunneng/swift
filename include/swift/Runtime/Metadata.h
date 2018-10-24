@@ -387,10 +387,10 @@ MetadataResponse swift_checkMetadataState(MetadataRequest request,
 
 /// Instantiate a resilient or generic protocol witness table.
 ///
-/// \param genericTable - The witness table template for the
-///   conformance. It may either have fields that require runtime
-///   initialization, or be missing requirements at the end for
-///   which default witnesses are available.
+/// \param conformance - The protocol conformance descriptor, which
+///   contains the generic witness table record. It may either have fields
+///   that require runtime initialization, or be missing requirements at the
+///   end for which default witnesses are available.
 ///
 /// \param type - The conforming type, used to form a uniquing key
 ///   for the conformance. If the witness table is not dependent on
@@ -406,9 +406,25 @@ MetadataResponse swift_checkMetadataState(MetadataRequest request,
 ///   conformances.
 SWIFT_RUNTIME_EXPORT
 const WitnessTable *
-swift_getGenericWitnessTable(GenericWitnessTable *genericTable,
-                             const Metadata *type,
-                             void **const *instantiationArgs);
+swift_instantiateWitnessTable(ProtocolConformanceDescriptor *conformance,
+                              const Metadata *type,
+                              void **const *instantiationArgs);
+
+/// Retrieve an associated type witness from the given witness table.
+///
+/// \param wtable The witness table.
+/// \param conformingType Metadata for the conforming type.
+/// \param reqBase "Base" requirement used to compute the witness index
+/// \param assocType Associated type descriptor.
+///
+/// \returns metadata for the associated type witness.
+SWIFT_RUNTIME_EXPORT
+MetadataResponse swift_getAssociatedTypeWitness(
+                                          MetadataRequest request,
+                                          WitnessTable *wtable,
+                                          const Metadata *conformingType,
+                                          const ProtocolRequirement *reqBase,
+                                          const ProtocolRequirement *assocType);
 
 /// \brief Fetch a uniqued metadata for a function type.
 SWIFT_RUNTIME_EXPORT
@@ -615,7 +631,6 @@ swift_relocateClassMetadata(ClassDescriptor *descriptor,
 ///   class metadata pattern by swift_allocateGenericClassMetadata().
 SWIFT_RUNTIME_EXPORT
 void swift_initClassMetadata(ClassMetadata *self,
-                             ClassMetadata *super,
                              ClassLayoutFlags flags,
                              size_t numFields,
                              const TypeLayout * const *fieldTypes,
@@ -632,7 +647,6 @@ void swift_initClassMetadata(ClassMetadata *self,
 /// size is not known at compile time.
 SWIFT_RUNTIME_EXPORT
 void swift_updateClassMetadata(ClassMetadata *self,
-                               ClassMetadata *super,
                                ClassLayoutFlags flags,
                                size_t numFields,
                                const TypeLayout * const *fieldTypes,
@@ -798,7 +812,7 @@ void swift_registerTypeMetadataRecords(const TypeMetadataRecord *begin,
 /// Return the superclass, if any.  The result is nullptr for root
 /// classes and class protocol types.
 SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_API
+SWIFT_RUNTIME_STDLIB_INTERNAL
 const Metadata *_swift_class_getSuperclass(const Metadata *theClass);
 
 #if !NDEBUG
