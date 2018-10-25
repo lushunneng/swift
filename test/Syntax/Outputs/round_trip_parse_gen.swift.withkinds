@@ -558,3 +558,7 @@ func foo<FunctionSignature><ParameterClause>() </ParameterClause></FunctionSigna
 #sourceLocation()</PoundSourceLocation>
 
 "<StringSegment>abc </StringSegment>\( } )<StringSegment> def</StringSegment>"
+
+#assert(true)
+#assert(false)
+#assert(true, "hello world")

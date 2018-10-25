@@ -1649,6 +1649,13 @@ public:
     PrintWithColorRAII(OS, ParenthesisColor) << ')';
   }
 
+  void visitPoundAssertStmt(PoundAssertStmt *S) {
+    printCommon(S, "pound_assert");
+    OS << " message=" << QuotedString(S->getMessage()) << "\n";
+    printRec(S->getCondition());
+    OS << ")";
+  }
+
   void visitDoCatchStmt(DoCatchStmt *S) {
     printCommon(S, "do_catch_stmt") << '\n';
     printRec(S->getBody());
@@ -2643,13 +2650,6 @@ public:
   void visitKeyPathDotExpr(KeyPathDotExpr *E) {
     printCommon(E, "key_path_dot_expr");
     PrintWithColorRAII(OS, ParenthesisColor) << ')';
-  }
-
-  void visitPoundAssertExpr(PoundAssertExpr *E) {
-    printCommon(E, "pound_assert");
-    OS << " message=" << QuotedString(E->getMessage()) << "\n";
-    printRec(E->getCondition());
-    OS << ")";
   }
 };
 

@@ -362,7 +362,6 @@ ConcreteDeclRef Expr::getReferencedDecl() const {
   NO_REFERENCE(ObjCSelector);
   NO_REFERENCE(KeyPath);
   NO_REFERENCE(KeyPathDot);
-  NO_REFERENCE(PoundAssert);
 
 #undef SIMPLE_REFERENCE
 #undef NO_REFERENCE
@@ -667,7 +666,6 @@ bool Expr::canAppendPostfixExpression(bool appendingPostfixOperator) const {
   case ExprKind::UnresolvedPattern:
   case ExprKind::EditorPlaceholder:
   case ExprKind::KeyPathDot:
-  case ExprKind::PoundAssert:
     return false;
   }
 
