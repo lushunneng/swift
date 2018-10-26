@@ -2409,16 +2409,10 @@ ParserResult<CaseStmt> Parser::parseStmtCase(bool IsActive) {
 /// stmt-pound-assert:
 ///   '#assert' '(' expr (',' string_literal)? ')'
 ParserResult<Stmt> Parser::parseStmtPoundAssert() {
-  SyntaxParsingContext AssertContext(SyntaxContext,
-      SyntaxKind::PoundAssertStmt);
+  SyntaxContext->setCreateSyntax(SyntaxKind::PoundAssertStmt);
 
   SourceLoc startLoc = consumeToken(tok::pound_assert);
   SourceLoc endLoc;
-
-  if (!Context.LangOpts.EnableExperimentalStaticAssert) {
-    diagnose(startLoc, diag::pound_assert_disabled);
-    return makeParserError();
-  }
 
   if (Tok.isNot(tok::l_paren)) {
     diagnose(Tok, diag::pound_assert_expected_lparen);
@@ -2427,10 +2421,8 @@ ParserResult<Stmt> Parser::parseStmtPoundAssert() {
   SourceLoc LBLoc = consumeToken(tok::l_paren);
 
   auto conditionExprResult = parseExpr(diag::pound_assert_expected_expression);
-  // if (conditionExprResult.hasCodeCompletion())
-  //   return conditionExprResult;
-  if (conditionExprResult.isParseError())
-    return makeParserError();
+  if (conditionExprResult.hasCodeCompletion())
+    return ParserStatus(conditionExprResult);
 
   StringRef message;
   if (consumeIf(tok::comma)) {
@@ -2450,6 +2442,13 @@ ParserResult<Stmt> Parser::parseStmtPoundAssert() {
 
   if (parseMatchingToken(tok::r_paren, endLoc,
                          diag::pound_assert_expected_rparen, LBLoc)) {
+    return makeParserError();
+  }
+
+  // We check this after consuming everything, so that the SyntaxContext
+  // understands this statement even when the feature is disabled.
+  if (!Context.LangOpts.EnableExperimentalStaticAssert) {
+    diagnose(startLoc, diag::pound_assert_disabled);
     return makeParserError();
   }
 
