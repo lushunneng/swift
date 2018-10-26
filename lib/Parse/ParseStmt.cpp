@@ -2421,7 +2421,7 @@ ParserResult<Stmt> Parser::parseStmtPoundAssert() {
   SourceLoc LBLoc = consumeToken(tok::l_paren);
 
   auto conditionExprResult = parseExpr(diag::pound_assert_expected_expression);
-  if (conditionExprResult.hasCodeCompletion())
+  if (conditionExprResult.isParseError())
     return ParserStatus(conditionExprResult);
 
   StringRef message;
