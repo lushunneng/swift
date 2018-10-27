@@ -148,6 +148,9 @@ std::string LinkEntity::mangleAsString() const {
   case Kind::SwiftMetaclassStub:
     return mangler.mangleClassMetaClass(cast<ClassDecl>(getDecl()));
 
+  case Kind::ObjCMetadataUpdateFunction:
+    return mangler.mangleObjCMetadataUpdateFunction(cast<ClassDecl>(getDecl()));
+
   case Kind::ClassMetadataBaseOffset:               // class metadata base offset
     return mangler.mangleClassMetadataBaseOffset(cast<ClassDecl>(getDecl()));
 
@@ -210,10 +213,6 @@ std::string LinkEntity::mangleAsString() const {
 
   case Kind::GenericProtocolWitnessTableInstantiationFunction:
     return mangler.mangleGenericProtocolWitnessTableInstantiationFunction(
-                                                    getProtocolConformance());
-
-  case Kind::ProtocolWitnessTableAccessFunction:
-    return mangler.mangleProtocolWitnessTableAccessFunction(
                                                     getProtocolConformance());
 
   case Kind::ProtocolWitnessTablePattern:
@@ -355,6 +354,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
     return SILLinkage::Private;
   }
 
+  case Kind::ObjCMetadataUpdateFunction:
   case Kind::TypeMetadataInstantiationCache:
   case Kind::TypeMetadataInstantiationFunction:
   case Kind::TypeMetadataSingletonInitializationCache:
@@ -466,7 +466,6 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
                          forDefinition);
 
   case Kind::DirectProtocolWitnessTable:
-  case Kind::ProtocolWitnessTableAccessFunction:
   case Kind::ProtocolConformanceDescriptor:
     return getLinkageAsConformance();
 
@@ -620,11 +619,11 @@ bool LinkEntity::isAvailableExternally(IRGenModule &IGM) const {
   case Kind::DefaultAssociatedConformanceAccessor:
     return false;
 
+  case Kind::ObjCMetadataUpdateFunction:
   case Kind::ValueWitness:
   case Kind::TypeMetadataAccessFunction:
   case Kind::TypeMetadataLazyCacheVariable:
   case Kind::FieldOffset:
-  case Kind::ProtocolWitnessTableAccessFunction:
   case Kind::ProtocolWitnessTableLazyAccessFunction:
   case Kind::ProtocolWitnessTableLazyCacheVariable:
   case Kind::AssociatedTypeWitnessTableAccessFunction:
@@ -791,6 +790,7 @@ const SourceFile *LinkEntity::getSourceFileForEmission() const {
   case Kind::ObjCClass:
   case Kind::ObjCMetaclass:
   case Kind::SwiftMetaclassStub:
+  case Kind::ObjCMetadataUpdateFunction:
   case Kind::ClassMetadataBaseOffset:
   case Kind::PropertyDescriptor:
   case Kind::NominalTypeDescriptor:
@@ -827,7 +827,6 @@ const SourceFile *LinkEntity::getSourceFileForEmission() const {
     
   case Kind::DirectProtocolWitnessTable:
   case Kind::ProtocolWitnessTablePattern:
-  case Kind::ProtocolWitnessTableAccessFunction:
   case Kind::GenericProtocolWitnessTableInstantiationFunction:
   case Kind::AssociatedTypeWitnessTableAccessFunction:
   case Kind::ReflectionAssociatedTypeDescriptor:

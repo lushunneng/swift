@@ -103,6 +103,10 @@ public:
     return mangleNominalTypeSymbol(Decl, "Mm");
   }
 
+  std::string mangleObjCMetadataUpdateFunction(const ClassDecl *Decl) {
+    return mangleNominalTypeSymbol(Decl, "MU");
+  }
+
   std::string mangleClassMetadataBaseOffset(const ClassDecl *Decl) {
     return mangleNominalTypeSymbol(Decl, "Mo");
   }
@@ -253,11 +257,6 @@ public:
   std::string mangleGenericProtocolWitnessTableInstantiationFunction(
                                                 const ProtocolConformance *C) {
     return mangleConformanceSymbol(Type(), C, "WI");
-  }
-
-  std::string mangleProtocolWitnessTableAccessFunction(
-                                                const ProtocolConformance *C) {
-    return mangleConformanceSymbol(Type(), C, "Wa");
   }
 
   std::string mangleProtocolWitnessTableLazyAccessFunction(Type type,

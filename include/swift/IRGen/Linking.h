@@ -151,6 +151,11 @@ class LinkEntity {
     /// A swift metaclass-stub reference.  The pointer is a ClassDecl*.
     SwiftMetaclassStub,
 
+    /// A callback used by newer Objective-C runtimes to initialize class
+    /// metadata for classes where doesClassMetadataRequireUpdate() is true
+    /// but doesClassMetadataRequireInitialization() is false.
+    ObjCMetadataUpdateFunction,
+
     /// A class metadata base offset global variable.  This stores the offset
     /// of the immediate members of a class (generic parameters, field offsets,
     /// vtable offsets) in the class's metadata.  The immediate members begin
@@ -243,10 +248,6 @@ class LinkEntity {
     /// A protocol witness table pattern. The secondary pointer is a
     /// ProtocolConformance*.
     ProtocolWitnessTablePattern,
-
-    /// A witness accessor function. The secondary pointer is a
-    /// ProtocolConformance*.
-    ProtocolWitnessTableAccessFunction,
 
     /// The instantiation function for a generic protocol witness table.
     /// The secondary pointer is a ProtocolConformance*.
@@ -569,6 +570,12 @@ public:
     return entity;
   }
 
+  static LinkEntity forObjCMetadataUpdateFunction(ClassDecl *decl) {
+    LinkEntity entity;
+    entity.setForDecl(Kind::ObjCMetadataUpdateFunction, decl);
+    return entity;
+  }
+
   static LinkEntity forTypeMetadata(CanType concreteType,
                                     TypeMetadataAddress addr) {
     LinkEntity entity;
@@ -724,14 +731,6 @@ public:
   forProtocolWitnessTablePattern(const ProtocolConformance *C) {
     LinkEntity entity;
     entity.setForProtocolConformance(Kind::ProtocolWitnessTablePattern, C);
-    return entity;
-  }
-
-  static LinkEntity
-  forProtocolWitnessTableAccessFunction(const ProtocolConformance *C) {
-    LinkEntity entity;
-    entity.setForProtocolConformance(Kind::ProtocolWitnessTableAccessFunction,
-                                     C);
     return entity;
   }
 

@@ -1367,6 +1367,15 @@ ERROR(pattern_binds_no_variables,none,
       "variables",
       (unsigned))
 
+ERROR(pattern_no_uninhabited_type,none,
+      "%select{%select{variable|constant}0|stored property}1 %2 cannot have "
+      "enum type %3 with no cases",
+      (bool, bool, Identifier, Type))
+ERROR(pattern_no_uninhabited_tuple_type,none,
+      "%select{%select{variable|constant}0|stored property}1 %2 cannot have "
+      "tuple type %3 containing enum with no cases",
+      (bool, bool, Identifier, Type))
+
 ERROR(nscoding_unstable_mangled_name,none,
       "%select{private|fileprivate|nested|local}0 class %1 has an "
       "unstable name when archiving via 'NSCoding'",
@@ -2277,7 +2286,7 @@ ERROR(multiple_enum_raw_types,none,
 ERROR(raw_type_not_first,none,
   "raw type %0 must appear first in the enum inheritance clause", (Type))
 ERROR(raw_type_not_literal_convertible,none,
-      "raw type %0 is not expressible by any literal",
+      "raw type %0 is not expressible by a string, integer, or floating-point literal",
       (Type))
 ERROR(enum_raw_type_not_equatable,none,
       "RawRepresentable conformance cannot be synthesized because raw type %0 is not "

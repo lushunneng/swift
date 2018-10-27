@@ -470,6 +470,9 @@ struct ConformanceDescription {
   /// Whether this witness table requires runtime specialization.
   const unsigned requiresSpecialization : 1;
 
+  /// Whether this witness table contains dependent associated type witnesses.
+  const unsigned hasDependentAssociatedTypeWitnesses : 1;
+
   /// The instantiation function, to be run at the end of witness table
   /// instantiation.
   llvm::Constant *instantiationFn = nullptr;
@@ -482,11 +485,15 @@ struct ConformanceDescription {
                          llvm::Constant *pattern,
                          uint16_t witnessTableSize,
                          uint16_t witnessTablePrivateSize,
-                         bool requiresSpecialization)
+                         bool requiresSpecialization,
+                         bool hasDependentAssociatedTypeWitnesses)
     : conformance(conformance), wtable(wtable), pattern(pattern),
       witnessTableSize(witnessTableSize),
       witnessTablePrivateSize(witnessTablePrivateSize),
-      requiresSpecialization(requiresSpecialization) { }
+      requiresSpecialization(requiresSpecialization),
+      hasDependentAssociatedTypeWitnesses(hasDependentAssociatedTypeWitnesses)
+  {
+  }
 };
 
 /// IRGenModule - Primary class for emitting IR for global declarations.
@@ -1302,15 +1309,15 @@ public:
   Address getAddrOfObjCClassRef(ClassDecl *D);
   llvm::Constant *getAddrOfMetaclassObject(ClassDecl *D,
                                            ForDefinition_t forDefinition);
+  llvm::Function *getAddrOfObjCMetadataUpdateFunction(ClassDecl *D,
+                                                      ForDefinition_t forDefinition);
+
   llvm::Function *getAddrOfSILFunction(SILFunction *f,
                                        ForDefinition_t forDefinition);
   llvm::Function *getAddrOfContinuationPrototype(CanSILFunctionType fnType);
   Address getAddrOfSILGlobalVariable(SILGlobalVariable *var,
                                      const TypeInfo &ti,
                                      ForDefinition_t forDefinition);
-  llvm::Function *getAddrOfWitnessTableAccessFunction(
-                                           const NormalProtocolConformance *C,
-                                               ForDefinition_t forDefinition);
   llvm::Function *getAddrOfWitnessTableLazyAccessFunction(
                                            const NormalProtocolConformance *C,
                                                CanType conformingType,
